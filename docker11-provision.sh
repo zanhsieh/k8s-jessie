@@ -15,4 +15,3 @@ then
     sudo sed -i.bak 's/GRUB_CMDLINE_LINUX="/GRUB_CMDLINE_LINUX="cgroup_enable=memory swapaccount=1 /' /etc/default/grub
 fi
 sudo update-grub2
-sudo reboot now

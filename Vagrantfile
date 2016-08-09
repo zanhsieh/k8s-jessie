@@ -33,6 +33,7 @@ Vagrant.configure("2") do |config|
       #{host_check($IPs)}
       SHELL
       m.vm.provision "shell", path: "docker11-provision.sh"
+      m.vm.provision "reload"
     end
   end
 end

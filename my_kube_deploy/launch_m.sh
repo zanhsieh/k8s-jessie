@@ -7,6 +7,7 @@ docker run -d \
   --listen-client-urls=http://0.0.0.0:4001 \
   --advertise-client-urls=http://0.0.0.0:4001 \
   --data-dir=/var/etcd/data
+
 docker run -d --name=apiserver \
   --net=host --pid=host --privileged=true \
   gcr.io/google_containers/hyperkube:v1.2.2 \
@@ -15,29 +16,37 @@ docker run -d --name=apiserver \
   --service-cluster-ip-range=10.0.40.1/24 \
   --etcd_servers=http://127.0.0.1:4001 \
   --v=2
-docker run -f name=controller-manager \
+
+docker run -d --name=controller-manager \
   --net=host --pid=host --privileged=true \
-  gcr.io/google_containers/hyperkube-amd64:v1.2.2 \
+  gcr.io/google_containers/hyperkube:v1.2.2 \
   /hyperkube controller-manager \
   --master=0.0.0.0:8080 \
   --service-account-private-key-file=/srv/kubernetes/server.key \
   --root-ca-file=/srv/kubernetes/ca.crt \
   --min-resync-period=3m \
-  --v=2"
-docker run -d --name=kubs \
-  --volume=/:/rootfs:ro --volume=/sys:/sys:ro --volume=/dev:/dev \
-  --volume=/var/lib/docker/:/var/lib/docker:rw \
-  --volume=/var/lib/kubelet/:/var/lib/kubelet:rw \
-  --volume=/var/run:/var/run:rw \
+  --v=2
+
+docker run -d --name=scheduler \
   --net=host --pid=host --privileged=true \
   gcr.io/google_containers/hyperkube:v1.2.2 \
+  /hyperkube scheduler \
+  --master=127.0.0.1:8080 \
+  --v=2
+
+docker run -d --name=kubs \
+  --net=host --pid=host --privileged=true \
+  --volume=/:/rootfs:ro --volume=/sys:/sys:ro \
+  --volume=/dev:/dev --volume=/var/lib/docker/:/var/lib/docker:rw \
+  --volume=/var/lib/kubelet/:/var/lib/kubelet:rw \
+  --volume=/var/run:/var/run:rw \
+  gcr.io/google_containers/hyperkube:v1.2.2 \
   /hyperkube kubelet \
-  #--hostname-override="127.0.0.1" \
-  --address="0.0.0.0" \
-  --api-servers=http://0.0.0.0:8080 \
-  --cluster_dns=10.0.40.10 \
-  --cluster_domain=cluster.local \
-  --config=/etc/kubernetes/manifests-multi
+  --allow-privileged=true --containerized --enable-server \
+  --cluster_dns=10.0.40.10 --cluster_domain=cluster.local \
+  --config=/etc/kubernetes/manifests-multi \
+  --address="0.0.0.0" --api-servers=http://0.0.0.0:8080
+
 docker run -d --name=proxy \
   --net=host --privileged=true \
   gcr.io/google_containers/hyperkube:v1.2.2 \
@@ -64,3 +73,4 @@ kubectl -s http://m1:8080 create -f skydns-svc.yaml
 echo "Starting Kubernetes UI..."
 kubectl -s http://m1:8080 create -f dashboard.yaml
 kubectl -s http://m1:8080 cluster-info
+
